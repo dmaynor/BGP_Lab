@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BGP Observer</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>BGP Attack Lab Observer</h1>
+      <button
+        hx-get="/api/status"
+        hx-trigger="click"
+        hx-target="#status-panel"
+        hx-swap="innerHTML"
+      >Refresh status</button>
+    </header>
+    <main>
+      <section id="status-panel" class="card">
+        <p>Click "Refresh status" to load lab details.</p>
+      </section>
+      <section class="card">
+        <h2>PCAP files</h2>
+        <div
+          id="pcap-panel"
+          hx-get="/api/pcaps"
+          hx-trigger="load, every 30s"
+          hx-target="#pcap-panel"
+          hx-swap="outerHTML"
+        ></div>
+      </section>
+    </main>
+  </body>
+</html>

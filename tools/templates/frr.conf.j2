@@ -1,0 +1,26 @@
+frr defaults traditional
+service integrated-vtysh-config
+log syslog informational
+
+hostname {{ router.name }}
+password zebra
+enable password zebra
+
+router bgp {{ router.asn }}
+  bgp router-id {{ router.router_id }}
+  timers bgp 3 9
+{% for prefix in router.prefixes %}
+  network {{ prefix }}
+{% endfor %}
+{% for peer in router.peers %}
+  neighbor {{ peer.neighbor_ip }} remote-as {{ peer.remote_asn }}
+  neighbor {{ peer.neighbor_ip }} description {{ peer.neighbor_name }}
+{% if router.role == 'core' %}
+  neighbor {{ peer.neighbor_ip }} route-map CORE-OUT out
+{% endif %}
+{% endfor %}
+
+{% if router.role == 'core' %}
+route-map CORE-OUT permit 10
+  set local-preference 200
+{% endif %}

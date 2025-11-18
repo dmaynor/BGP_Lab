@@ -1,0 +1,96 @@
+version: 1
+metadata:
+  name: multi-as-lab
+  description: >-
+    Reference configuration describing routers, prefixes, and
+    scenario metadata for the scalable BGP attack lab generator.
+  maintainer: student-lab@example.edu
+  asn_range:
+    start: 65000
+    end: 65100
+roles:
+  core:
+    local_pref: 200
+    export_policy: advertise-all
+  transit:
+    local_pref: 150
+    export_policy: customer-only
+  edge:
+    local_pref: 100
+    export_policy: default
+routers:
+  - name: r1
+    asn: 65001
+    role: edge
+    router_id: 10.255.0.1
+    mgmt_ip: 172.20.0.11
+    loopback: 10.0.1.1/32
+    networks:
+      - 10.10.1.0/24
+    peers:
+      - neighbor: r2
+        link: fabric-a
+  - name: r2
+    asn: 65002
+    role: transit
+    router_id: 10.255.0.2
+    mgmt_ip: 172.20.0.12
+    loopback: 10.0.2.1/32
+    peers:
+      - neighbor: r1
+        link: fabric-a
+      - neighbor: r3
+        link: fabric-b
+  - name: r3
+    asn: 65003
+    role: edge
+    router_id: 10.255.0.3
+    mgmt_ip: 172.20.0.13
+    loopback: 10.0.3.1/32
+    networks:
+      - 10.20.3.0/24
+    peers:
+      - neighbor: r2
+        link: fabric-b
+links:
+  fabric-a:
+    ipv4_subnet: 192.0.2.0/30
+  fabric-b:
+    ipv4_subnet: 198.51.100.0/30
+prefix_owners:
+  - prefix: 10.10.1.0/24
+    origin: r1
+    propagation_scope: full
+  - prefix: 10.20.3.0/24
+    origin: r3
+    propagation_scope: limited
+services:
+  observer:
+    image: bgp-lab/observer:dev
+    listen_port: 8080
+  attack_controller:
+    image: bgp-lab/attack-ctl:dev
+    listen_port: 9000
+scenarios:
+  normal:
+    description: Baseline clean routing state.
+    orchestrator_entrypoint: normal
+  origin_hijack:
+    description: Classic origin hijack by AS 65003.
+    orchestrator_entrypoint: hijack
+  subprefix:
+    description: More specific prefix hijack for partial traffic attraction.
+    orchestrator_entrypoint: more-specific
+  leak:
+    description: Transit AS incorrectly re-advertises full feed.
+    orchestrator_entrypoint: leak
+  aspath_forgery:
+    description: Attacker crafts fake AS_PATH to look legitimate.
+    orchestrator_entrypoint: aspath
+  blackhole:
+    description: Remotely triggered blackhole on specific prefix.
+    orchestrator_entrypoint: blackhole
+pcap_pipeline:
+  enabled: true
+  ring_buffer_size_mb: 256
+  shared_volume: lab_state
