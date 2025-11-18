@@ -1,0 +1,46 @@
+{
+  "lab_name": "multi-as-lab",
+  "description": "Reference configuration describing routers, prefixes, and scenario metadata for the scalable BGP attack lab generator.",
+  "routers": [
+    {
+      "name": "r1",
+      "asn": 65001,
+      "role": "edge",
+      "networks": [
+        "10.10.1.0/24"
+      ],
+      "peers": [
+        "r2"
+      ]
+    },
+    {
+      "name": "r2",
+      "asn": 65002,
+      "role": "transit",
+      "networks": [],
+      "peers": [
+        "r1",
+        "r3"
+      ]
+    },
+    {
+      "name": "r3",
+      "asn": 65003,
+      "role": "edge",
+      "networks": [
+        "10.20.3.0/24"
+      ],
+      "peers": [
+        "r2"
+      ]
+    }
+  ],
+  "links": {
+    "fabric-a": {
+      "ipv4_subnet": "192.0.2.0/30"
+    },
+    "fabric-b": {
+      "ipv4_subnet": "198.51.100.0/30"
+    }
+  }
+}

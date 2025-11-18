@@ -50,6 +50,7 @@ services:
     volumes:
       - {{ pcap_pipeline.shared_volume }}:/captures:ro
       - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - ./topology-metadata.json:/lab/topology-metadata.json:ro
     depends_on:
       - attack_controller
     networks:

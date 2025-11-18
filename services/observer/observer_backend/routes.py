@@ -1,12 +1,13 @@
 """API routes for the observer backend."""
 
+import json
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
 
 from .config import ObserverSettings
-from .models import LabStatus, Scenario
+from .models import LabStatus, Scenario, TopologyModel
 from .pcap import list_pcaps
 
 router = APIRouter()
@@ -38,3 +39,17 @@ def pcaps() -> dict:
     base_path = Path("/captures")
     files = [path.name for path in list_pcaps(base_path)]
     return {"files": files}
+
+
+@router.get("/topology", response_model=TopologyModel)
+def topology() -> TopologyModel:
+    metadata_path = Path(settings.topology_metadata_path)
+    try:
+        payload = metadata_path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail="Topology metadata missing") from exc
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail="Invalid topology metadata") from exc
+    return TopologyModel(**data)
