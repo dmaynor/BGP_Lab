@@ -34,6 +34,42 @@ def status() -> LabStatus:
     )
 
 
+def _extract_error_message(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except json.JSONDecodeError:
+        return response.text or "Scenario activation failed"
+    for key in ("detail", "message", "error"):
+        if isinstance(payload.get(key), str):
+            return str(payload[key])
+    return json.dumps(payload)
+
+
+@router.post("/scenario/{name}")
+def activate_scenario(name: str) -> dict:
+    try:
+        resp = httpx.post(
+            f"{settings.attack_controller_url}/scenario/{name}",
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        detail = _extract_error_message(exc.response)
+        raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    try:
+        payload = resp.json()
+    except json.JSONDecodeError:
+        payload = {}
+    message = (
+        payload.get("detail")
+        or payload.get("message")
+        or f"Scenario '{name}' activated"
+    )
+    return {"detail": message}
+
+
 @router.get("/pcaps")
 def pcaps() -> dict:
     base_path = Path("/captures")
@@ -47,9 +83,15 @@ def topology() -> TopologyModel:
     try:
         payload = metadata_path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=500, detail="Topology metadata missing") from exc
+        raise HTTPException(
+            status_code=404,
+            detail="Topology metadata not found. Run lab_gen.py to generate it.",
+        ) from exc
     try:
         data = json.loads(payload)
     except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=500, detail="Invalid topology metadata") from exc
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid topology metadata. Regenerate lab artifacts.",
+        ) from exc
     return TopologyModel(**data)
