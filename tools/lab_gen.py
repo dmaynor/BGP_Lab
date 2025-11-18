@@ -102,6 +102,7 @@ def build_link_ip_assignments(config: LabConfig) -> Dict[str, Dict[str, str]]:
         if not subnet:
             raise ValueError(f"link {link_name} missing ipv4_subnet in lab_config.yaml")
         hosts = ipaddress.IPv4Network(subnet).hosts()
+        next(hosts) # Skip the first usable IP (Docker bridge gateway)
         for router_name in dict.fromkeys(routers_on_link):
             try:
                 assignments[router_name][link_name] = str(next(hosts))

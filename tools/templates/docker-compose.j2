@@ -3,7 +3,7 @@ version: "3.9"
 services:
 {% for router in routers %}
   {{ router.name }}:
-    image: frrouting/frr:stable
+    image: frrouting/frr:latest
     container_name: {{ router.name }}
     hostname: {{ router.name }}
     volumes:
@@ -28,11 +28,11 @@ services:
 {% endif %}
 {% endfor %}
   attack_controller:
-    build: ./services/attack_controller
+    build: ../services/attack_controller
     environment:
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
-      - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - ../lab_config.yaml:/lab/lab_config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
 {% for router in routers %}
@@ -40,29 +40,31 @@ services:
 {% endfor %}
     networks:
       lab_mgmt:
-        ipv4_address: 172.30.0.10
+        ipv4_address: 10.255.0.10
 
   observer:
-    build: ./services/observer
+    build: ../services/observer
     environment:
       ATTACK_CONTROLLER_URL: http://attack_controller:9000
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
       - {{ pcap_pipeline.shared_volume }}:/captures:ro
-      - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - ../lab_config.yaml:/lab/lab_config.yaml:ro
       - ./topology-metadata.json:/lab/topology-metadata.json:ro
     depends_on:
       - attack_controller
     networks:
       lab_mgmt:
-        ipv4_address: 172.30.0.20
+        ipv4_address: 10.255.0.20
+    ports:
+      - "8080:8080"
 
 networks:
   lab_mgmt:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.30.0.0/24
+        - subnet: 10.255.0.0/24
 {% for link_name, link in links.items() %}
   {{ link_name }}:
     driver: bridge

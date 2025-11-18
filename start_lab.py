@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-Start the BGP lab Docker stack and show basic status.
+Start the BGP lab Docker stack, show status, and autostart netprobe listeners.
 
-This script is a thin wrapper around:
+This script wraps:
 
     docker compose up -d
     docker compose ps
+    docker compose exec -d <router> python3 /usr/local/bin/netprobe.py listen ...
 
-It assumes:
-    - The docker-compose.yml file lives in the same directory
-      as this script.
-    - Docker and the docker compose plugin are installed and
-      available in the current $PATH.
+Assumptions:
+    - docker-compose.yml lives in the same directory as this script.
+    - Docker + docker compose are installed and available on PATH.
+    - Each router container (r1, r2, r3) has:
+        ./tools/netprobe.py mounted as /usr/local/bin/netprobe.py
 
 Usage:
     python3 start_lab.py
@@ -22,6 +23,11 @@ import os
 import subprocess
 import sys
 from typing import List, Tuple
+
+
+ROUTER_CONTAINERS = ("r1", "r2", "r3")
+NETPROBE_UDP_PORT = 5000
+NETPROBE_TCP_PORT = 5000
 
 
 def run_command(command: List[str]) -> Tuple[int, str, str]:
@@ -122,6 +128,63 @@ def show_container_status() -> None:
         )
 
 
+def start_netprobe(container: str) -> None:
+    """
+    Start the netprobe listener inside a router container in detached mode.
+
+    This runs:
+
+        docker compose exec -d <container> \
+            python3 /usr/local/bin/netprobe.py listen --udp-port ... --tcp-port ...
+
+    It does NOT block the caller.
+    """
+    print(f"[*] Starting netprobe listener on {container}...")
+    exit_code, stdout, stderr = run_command(
+        [
+            "docker",
+            "compose",
+            "exec",
+            "-d",  # detached: non-blocking
+            container,
+            "python3",
+            "/usr/local/bin/netprobe.py",
+            "listen",
+            "--udp-port",
+            str(NETPROBE_UDP_PORT),
+            "--tcp-port",
+            str(NETPROBE_TCP_PORT),
+        ]
+    )
+
+    if stdout:
+        print(stdout, end="")
+    if stderr:
+        # Non-fatal warnings may go here; we still log them.
+        print(stderr, file=sys.stderr, end="")
+
+    if exit_code != 0:
+        # We warn but do not abort the entire startup.
+        print(
+            f"[!] Warning: failed to start netprobe on {container} "
+            f"(exit {exit_code}).",
+            file=sys.stderr,
+        )
+    else:
+        print(f"[+] netprobe listener started on {container}.")
+
+
+def start_all_netprobe_listeners() -> None:
+    """
+    Start netprobe listeners on all router containers (r1, r2, r3).
+
+    Each listener runs detached inside its container and does not
+    block this script.
+    """
+    for container in ROUTER_CONTAINERS:
+        start_netprobe(container)
+
+
 def main() -> None:
     """
     Main entry point for the start_lab script.
@@ -130,14 +193,17 @@ def main() -> None:
         1. Change directory to the script location.
         2. Start the docker compose stack.
         3. Show container status.
+        4. Start netprobe listeners on r1, r2, r3 (detached).
     """
     try:
         ensure_repo_directory()
         start_docker_stack()
         show_container_status()
+        start_all_netprobe_listeners()
         print(
-            "[+] Lab startup complete. You can now use orchestrator.py "
-            "to set scenarios, and exec into the routers as needed."
+            "[+] Lab startup complete. FRR is running, netprobe listeners are "
+            "active on r1/r2/r3." 
+            "Use orchestrator.py to set BGP scenarios."
         )
     except RuntimeError as exc:
         print(f"[!] Error: {exc}", file=sys.stderr)
@@ -146,4 +212,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

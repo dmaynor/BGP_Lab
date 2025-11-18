@@ -6,68 +6,41 @@
       "name": "r1",
       "asn": 65001,
       "role": "edge",
-      "networks": [
-        "10.10.1.0/24"
-      ],
-      "peers": [
-        "r2"
-      ]
-    },
-    {
+      "networks": ["10.10.1.0/24"],
+      "peers": ["r2"]
+    },    {
       "name": "r2",
       "asn": 65002,
       "role": "transit",
       "networks": [],
-      "peers": [
-        "r1",
-        "r3"
-      ]
-    },
-    {
+      "peers": ["r1", "r3", "r4"]
+    },    {
       "name": "r3",
       "asn": 65003,
       "role": "edge",
-      "networks": [
-        "10.20.3.0/24"
-      ],
-      "peers": [
-        "r2"
-      ]
-    },
-    {
+      "networks": ["10.20.3.0/24"],
+      "peers": ["r2"]
+    },    {
       "name": "r4",
       "asn": 65004,
       "role": "core",
       "networks": [],
-      "peers": [
-        "r2",
-        "r5"
-      ]
-    },
-    {
+      "peers": ["r2", "r5"]
+    },    {
       "name": "r5",
       "asn": 65005,
       "role": "edge",
-      "networks": [
-        "10.50.5.0/24"
-      ],
-      "peers": [
-        "r4"
-      ]
-    }
-  ],
+      "networks": ["10.50.5.0/24"],
+      "peers": ["r4"]
+    }  ],
   "links": {
     "fabric-a": {
-      "ipv4_subnet": "192.0.2.0/30"
-    },
-    "fabric-b": {
-      "ipv4_subnet": "198.51.100.0/30"
-    },
-    "fabric-c": {
-      "ipv4_subnet": "203.0.113.0/30"
-    },
-    "fabric-d": {
-      "ipv4_subnet": "203.0.113.4/30"
-    }
-  }
+      "ipv4_subnet": "10.0.0.0/29"
+    },    "fabric-b": {
+      "ipv4_subnet": "10.0.0.8/29"
+    },    "fabric-c": {
+      "ipv4_subnet": "10.0.0.16/29"
+    },    "fabric-d": {
+      "ipv4_subnet": "10.0.0.24/29"
+    }  }
 }
