@@ -52,11 +52,37 @@ routers:
     peers:
       - neighbor: r2
         link: fabric-b
+  - name: r4
+    asn: 65004
+    role: core
+    router_id: 10.255.0.4
+    mgmt_ip: 172.20.0.14
+    loopback: 10.0.4.1/32
+    peers:
+      - neighbor: r2
+        link: fabric-c
+      - neighbor: r5
+        link: fabric-d
+  - name: r5
+    asn: 65005
+    role: edge
+    router_id: 10.255.0.5
+    mgmt_ip: 172.20.0.15
+    loopback: 10.0.5.1/32
+    networks:
+      - 10.50.5.0/24
+    peers:
+      - neighbor: r4
+        link: fabric-d
 links:
   fabric-a:
     ipv4_subnet: 192.0.2.0/30
   fabric-b:
     ipv4_subnet: 198.51.100.0/30
+  fabric-c:
+    ipv4_subnet: 203.0.113.0/30
+  fabric-d:
+    ipv4_subnet: 203.0.113.4/30
 prefix_owners:
   - prefix: 10.10.1.0/24
     origin: r1
@@ -64,6 +90,9 @@ prefix_owners:
   - prefix: 10.20.3.0/24
     origin: r3
     propagation_scope: limited
+  - prefix: 10.50.5.0/24
+    origin: r5
+    propagation_scope: full
 services:
   observer:
     image: bgp-lab/observer:dev
