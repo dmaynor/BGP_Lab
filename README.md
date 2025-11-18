@@ -56,14 +56,23 @@ See the included `lab_config.yaml` for a documented example.
 
 ```bash
 python3 tools/lab_gen.py lab_config.yaml --output-dir generated_lab
+cd generated_lab
+docker compose up -d
 ```
 
 Use `--validate-only` to confirm the configuration without writing any
-artifacts. The generator currently outputs:
+artifacts. When run without `--validate-only`, the generator produces the
+following layout (all relative to `generated_lab/`):
 
-- `generated_lab/docker-compose.generated.yml`
-- `generated_lab/frr/<router>/frr.conf`
-- `generated_lab/topology-metadata.json`
+```
+generated_lab/
+├── docker-compose.yml
+├── frr/
+│   └── <router>/
+│       ├── daemons
+│       └── frr.conf
+└── topology-metadata.json
+```
 
 ## Services
 
@@ -83,10 +92,18 @@ artifacts. The generator currently outputs:
 
 ## docker compose
 
-The root `docker-compose.yml` includes the legacy 3-router lab plus the
-new observer and attack controller containers. Future iterations will
-replace these static definitions with generator output once multi-AS
-scenarios are ready.
+Two compose entry points exist today:
+
+- **Baseline lab:** the root `docker-compose.yml` keeps the original
+  3-router topology wired to the Attack Controller and Observer. This is
+  useful for quick smoke tests while the generator continues to evolve.
+- **Generated labs:** run `lab_gen.py` (see above) and then operate from
+  `generated_lab/docker-compose.yml`. This path scales to multi-AS
+  topologies because routers, bridges, and FRR configs are generated from
+  `lab_config.yaml`.
+
+Future iterations will likely promote the generated compose file to the
+primary entry point once the workflow hardens.
 
 ## Roadmap
 
