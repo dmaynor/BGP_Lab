@@ -12,6 +12,8 @@ services:
     volumes:
       - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r1/daemons:/etc/frr/daemons:ro
+      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
+
     tty: true
     command: >
       bash -lc "/usr/lib/frr/frrinit.sh start &&
@@ -32,6 +34,7 @@ services:
     volumes:
       - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r2/daemons:/etc/frr/daemons:ro
+      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
     tty: true
     command: >
       bash -lc "/usr/lib/frr/frrinit.sh start &&
@@ -50,6 +53,7 @@ services:
     volumes:
       - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r3/daemons:/etc/frr/daemons:ro
+      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
     tty: true
     command: >
       bash -lc "/usr/lib/frr/frrinit.sh start &&
