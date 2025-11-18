@@ -149,7 +149,11 @@ def build_router_template_contexts(config: LabConfig) -> List[Dict]:
     return contexts
 
 
-def render_templates(config: LabConfig, output_dir: Path) -> None:
+def render_templates(
+    config: LabConfig,
+    output_dir: Path,
+    metadata_targets: Sequence[Path] | None = None,
+) -> None:
     template_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(str(template_dir)), trim_blocks=True, lstrip_blocks=True)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -179,7 +183,16 @@ def render_templates(config: LabConfig, output_dir: Path) -> None:
         links=config.links,
         metadata=config.metadata,
     )
-    (output_dir / "topology-metadata.json").write_text(metadata_payload, encoding="utf-8")
+    metadata_path = output_dir / "topology-metadata.json"
+    metadata_path.write_text(metadata_payload, encoding="utf-8")
+    seen_paths = {metadata_path.resolve()}
+    for target in metadata_targets or []:
+        target_path = target.resolve()
+        if target_path in seen_paths:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(metadata_payload, encoding="utf-8")
+        seen_paths.add(target_path)
 
 
 def summarize(config: LabConfig) -> str:
@@ -215,7 +228,9 @@ def main() -> None:
     print(summarize(config))
     if args.validate_only:
         return
-    render_templates(config, args.output_dir)
+    config_path = args.config.resolve()
+    metadata_targets = [config_path.parent / "topology-metadata.json"]
+    render_templates(config, args.output_dir, metadata_targets)
     print(f"[lab-gen] wrote artifacts to {args.output_dir}")
 
 

@@ -14,6 +14,33 @@ header {
   align-items: center;
 }
 
+button,
+.btn {
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #586069;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: #4a5159;
+}
+
+.btn-primary {
+  background: #0366d6;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #0256b5;
+}
+
 main {
   padding: 2rem;
   display: grid;
@@ -54,4 +81,50 @@ th {
 .error {
   color: #b00020;
   font-weight: 600;
+}
+
+.alert {
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.alert-success {
+  background: #e6ffed;
+  border-color: #34d058;
+  color: #1a7f37;
+}
+
+.alert-error {
+  background: #ffeef0;
+  border-color: #f97583;
+  color: #86181d;
+}
+
+.alert-info {
+  background: #e8f4fd;
+  border-color: #6cb6ff;
+  color: #004a9f;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.scenario-actions {
+  text-align: right;
+}
+
+.router-list {
+  list-style: disc;
+  margin-left: 1.25rem;
+}
+
+.pcap-list {
+  list-style: disc;
+  margin-left: 1.25rem;
 }

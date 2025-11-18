@@ -9,16 +9,14 @@
   <body>
     <header>
       <h1>BGP Attack Lab Observer</h1>
-      <button
-        hx-get="/api/status"
-        hx-trigger="click"
-        hx-target="#status-panel"
-        hx-swap="innerHTML"
-      >Refresh status</button>
+      <button id="refresh-status" class="btn btn-secondary">Refresh status</button>
     </header>
     <main>
       <section id="status-panel" class="card">
-        <p>Click "Refresh status" to load lab details.</p>
+        <div id="status-alert" class="alert" hidden></div>
+        <div id="status-content">
+          <p>Click "Refresh status" to load lab details.</p>
+        </div>
       </section>
       <section class="card">
         <h2>Topology overview</h2>
@@ -28,13 +26,9 @@
       </section>
       <section class="card">
         <h2>PCAP files</h2>
-        <div
-          id="pcap-panel"
-          hx-get="/api/pcaps"
-          hx-trigger="load, every 30s"
-          hx-target="#pcap-panel"
-          hx-swap="outerHTML"
-        ></div>
+        <div id="pcap-panel">
+          <p>Loading pcap files…</p>
+        </div>
       </section>
     </main>
     <script>
@@ -46,7 +40,16 @@
         try {
           const resp = await fetch("/api/topology");
           if (!resp.ok) {
-            throw new Error(`Failed to load topology (${resp.status})`);
+            let errorMessage = `Failed to load topology (${resp.status})`;
+            try {
+              const errorPayload = await resp.json();
+              if (typeof errorPayload.detail === "string") {
+                errorMessage = errorPayload.detail;
+              }
+            } catch (err) {
+              /* ignore parse errors */
+            }
+            throw new Error(errorMessage);
           }
           const data = await resp.json();
           container.innerHTML = renderTopology(data);
@@ -116,6 +119,166 @@
 
       loadTopology();
       setInterval(loadTopology, 60000);
+
+      const statusContent = document.getElementById("status-content");
+      const statusAlert = document.getElementById("status-alert");
+      const pcapPanel = document.getElementById("pcap-panel");
+
+      function escapeHtml(value) {
+        const safeValue = value ?? "";
+        return String(safeValue)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function clearStatusAlert() {
+        statusAlert.textContent = "";
+        statusAlert.hidden = true;
+        statusAlert.className = "alert";
+      }
+
+      function showStatusAlert(message, variant = "success") {
+        statusAlert.textContent = message;
+        statusAlert.className = `alert alert-${variant}`;
+        statusAlert.hidden = false;
+      }
+
+      function renderStatus(status) {
+        const scenarioRows = (status.scenarios || [])
+          .map(
+            (scenario) => `
+            <tr>
+              <td>${escapeHtml(scenario.name)}</td>
+              <td>${escapeHtml(scenario.description)}</td>
+              <td class="scenario-actions">
+                <button
+                  class="btn btn-primary"
+                  data-scenario="${escapeHtml(scenario.name)}"
+                  onclick="activateScenario(this.dataset.scenario)"
+                >Activate</button>
+              </td>
+            </tr>`
+          )
+          .join("");
+        const routerList = (status.routers || [])
+          .map((router) => `<li>${escapeHtml(router)}</li>`)
+          .join("");
+        return `
+          <div class="status-grid">
+            <div>
+              <h3>Scenarios</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${
+                    scenarioRows ||
+                    '<tr><td colspan="3">No scenarios published by the Attack Controller.</td></tr>'
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Routers</h3>
+              <ul class="router-list">
+                ${routerList || '<li>No routers defined in lab_config.yaml.</li>'}
+              </ul>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderPcaps(payload) {
+        const files = payload.files || [];
+        if (files.length === 0) {
+          return "<p>No pcap files.</p>";
+        }
+        const items = files
+          .map(
+            (file) =>
+              `<li><a href="/captures/${encodeURIComponent(file)}" download>${escapeHtml(
+                file,
+              )}</a></li>`
+          )
+          .join("");
+        return `<ul class="pcap-list">${items}</ul>`;
+      }
+
+      async function loadPcaps() {
+        if (!pcapPanel) {
+          return;
+        }
+        try {
+          const resp = await fetch("/api/pcaps");
+          if (!resp.ok) {
+            throw new Error(`Failed to load pcap files (${resp.status})`);
+          }
+          const data = await resp.json();
+          pcapPanel.innerHTML = renderPcaps(data);
+        } catch (error) {
+          pcapPanel.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+        }
+      }
+
+      async function loadStatus() {
+        if (!statusContent) {
+          return;
+        }
+        try {
+          const resp = await fetch("/api/status");
+          if (!resp.ok) {
+            throw new Error(`Failed to load status (${resp.status})`);
+          }
+          const data = await resp.json();
+          statusContent.innerHTML = renderStatus(data);
+          clearStatusAlert();
+        } catch (error) {
+          statusContent.innerHTML = `<p class="error">${error.message}</p>`;
+          showStatusAlert(error.message, "error");
+        }
+      }
+
+      async function activateScenario(name) {
+        if (!name) {
+          return;
+        }
+        showStatusAlert(`Activating scenario "${name}"…`, "info");
+        try {
+          const resp = await fetch(`/api/scenario/${encodeURIComponent(name)}`, {
+            method: "POST",
+          });
+          const payload = await resp.json().catch(() => ({}));
+          const detail = payload.detail || payload.message || `Scenario "${name}" activated.`;
+          if (!resp.ok) {
+            throw new Error(detail);
+          }
+          showStatusAlert(detail, "success");
+          await loadStatus();
+        } catch (error) {
+          showStatusAlert(error.message, "error");
+        }
+      }
+
+      window.activateScenario = activateScenario;
+
+      const refreshButton = document.getElementById("refresh-status");
+      if (refreshButton) {
+        refreshButton.addEventListener("click", () => {
+          loadStatus();
+        });
+      }
+
+      loadStatus();
+      loadPcaps();
+      setInterval(loadPcaps, 30000);
     </script>
   </body>
 </html>
