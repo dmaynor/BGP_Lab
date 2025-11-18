@@ -1,72 +1,105 @@
+version: "3.9"
+
 services:
   r1:
-    image: frrouting/frr:latest
-    container_name: bgp_r1
-    privileged: true
-    environment:
-      - FRR_LOG_STDERR=1
-      - FRR_IPV6=0
-    networks:
-      net_ab:
-        ipv4_address: 10.200.0.10
+    image: frrouting/frr:stable
+    container_name: r1
+    hostname: r1
     volumes:
       - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r1/daemons:/etc/frr/daemons:ro
-      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
-
-    tty: true
-    command: >
-      bash -lc "/usr/lib/frr/frrinit.sh start &&
-                tail -F /var/log/frr/bgpd.log"
+      - lab_state:/captures
+    networks:
+      fabric-a:
+        ipv4_address: 192.0.2.2
+      lab_mgmt:
+        ipv4_address: 172.30.0.11
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
 
   r2:
-    image: frrouting/frr:latest
-    container_name: bgp_r2
-    privileged: true
-    environment:
-      - FRR_LOG_STDERR=1
-      - FRR_IPV6=0
-    networks:
-      net_ab:
-        ipv4_address: 10.200.0.11
-      net_bc:
-        ipv4_address: 10.200.1.10
+    image: frrouting/frr:stable
+    container_name: r2
+    hostname: r2
     volumes:
       - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r2/daemons:/etc/frr/daemons:ro
-      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
-    tty: true
-    command: >
-      bash -lc "/usr/lib/frr/frrinit.sh start &&
-                tail -F /var/log/frr/bgpd.log"
+      - lab_state:/captures
+    networks:
+      fabric-a:
+        ipv4_address: 192.0.2.1
+      fabric-b:
+        ipv4_address: 198.51.100.2
+      lab_mgmt:
+        ipv4_address: 172.30.0.12
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
 
   r3:
-    image: frrouting/frr:latest
-    container_name: bgp_r3
-    privileged: true
-    environment:
-      - FRR_LOG_STDERR=1
-      - FRR_IPV6=0
-    networks:
-      net_bc:
-        ipv4_address: 10.200.1.11
+    image: frrouting/frr:stable
+    container_name: r3
+    hostname: r3
     volumes:
       - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r3/daemons:/etc/frr/daemons:ro
-      - ./tools/netprobe.py:/usr/local/bin/netprobe.py:ro
-    tty: true
-    command: >
-      bash -lc "/usr/lib/frr/frrinit.sh start &&
-                tail -F /var/log/frr/bgpd.log"
+      - lab_state:/captures
+    networks:
+      fabric-b:
+        ipv4_address: 198.51.100.1
+      lab_mgmt:
+        ipv4_address: 172.30.0.13
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+
+  attack_controller:
+    build: ./services/attack_controller
+    environment:
+      LAB_CONFIG: /lab/lab_config.yaml
+    volumes:
+      - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - r1
+      - r2
+      - r3
+    networks:
+      lab_mgmt:
+        ipv4_address: 172.30.0.20
+
+  observer:
+    build: ./services/observer
+    environment:
+      ATTACK_CONTROLLER_URL: http://attack_controller:9000
+      LAB_CONFIG: /lab/lab_config.yaml
+    volumes:
+      - lab_state:/captures:ro
+      - ./lab_config.yaml:/lab/lab_config.yaml:ro
+    depends_on:
+      - attack_controller
+    networks:
+      lab_mgmt:
+        ipv4_address: 172.30.0.30
 
 networks:
-  net_ab:
+  lab_mgmt:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.200.0.0/24
-  net_bc:
+        - subnet: 172.30.0.0/24
+  fabric-a:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.200.1.0/24
+        - subnet: 192.0.2.0/29
+  fabric-b:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 198.51.100.0/29
+
+volumes:
+  lab_state:
+    driver: local

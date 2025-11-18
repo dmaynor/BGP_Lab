@@ -1,0 +1,22 @@
+{
+  "lab_name": "{{ metadata.name }}",
+  "description": "{{ metadata.description }}",
+  "routers": [
+  {% for router in routers %}
+    {
+      "name": "{{ router.name }}",
+      "asn": {{ router.asn }},
+      "role": "{{ router.role }}",
+      "networks": [{% for network in router.networks %}"{{ network }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+      "peers": [{% for peer in router.peers %}"{{ peer.neighbor_name }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+    }{% if not loop.last %},{% endif %}
+  {% endfor %}
+  ],
+  "links": {
+  {% for link_name, link in links.items() %}
+    "{{ link_name }}": {
+      "ipv4_subnet": "{{ link.ipv4_subnet }}"
+    }{% if not loop.last %},{% endif %}
+  {% endfor %}
+  }
+}

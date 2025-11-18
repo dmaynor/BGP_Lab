@@ -1,89 +1,98 @@
-# BGP Attack Lab
+# BGP Attack Lab (Next-Gen)
 
-This repository provides a self-contained BGP attack playground built
-with Docker and FRRouting (FRR). It spins up three routers:
+This repository provides a containerized playground for demonstrating
+BGP attacks and defensive controls. The original lab focused on a
+3-router topology; this iteration adds the scaffolding required to scale
+to dozens of ASNs, ship generated configs, and present a safe, student
+facing dashboard.
 
-- **R1** (Victim, AS 65001) – legitimately owns `10.10.1.0/24`.
-- **R2** (Transit, AS 65002) – passes routes between R1 and R3.
-- **R3** (Attacker, AS 65003) – legitimately owns `10.20.3.0/24` but can
-  hijack the victim's prefix via the provided orchestrator.
+## Highlights
 
-The `orchestrator.py` script toggles between clean, hijack, and
-more-specific hijack scenarios so you can observe the resulting BGP
-state from the victim and transit perspectives.
-
-## Requirements
-
-- Linux or macOS host with Docker and the Docker Compose plugin
-- Python 3.8+ for the orchestrator script
-
-All networks are private Docker bridges; nothing is exposed to the
-public Internet.
+- **Single source of truth** – `lab_config.yaml` describes routers,
+  links, prefix owners, and scenario metadata.
+- **Generator pipeline** – `tools/lab_gen.py` reads the configuration and
+  renders docker-compose, FRR, and topology metadata using Jinja2
+  templates.
+- **Attack Controller** – FastAPI service that wraps the existing
+  `orchestrator.py` script behind an internal API.
+- **Observer** – FastAPI + HTMX dashboard that surfaces scenario state
+  and PCAP listings without giving students direct router access.
 
 ## Repository layout
 
 ```
 .
 ├── docker-compose.yml
+├── lab_config.yaml
+├── tools/
+│   ├── lab_gen.py
+│   └── templates/
+├── services/
+│   ├── attack_controller/
+│   └── observer/
 ├── orchestrator.py
 └── frr/
     ├── r1/
-    │   ├── daemons
-    │   └── frr.conf
     ├── r2/
-    │   ├── daemons
-    │   └── frr.conf
     └── r3/
-        ├── daemons
-        └── frr.conf
 ```
 
-## Usage
+## lab_config.yaml format
 
-1. **Start the lab**
+The file captures:
 
-   ```bash
-   docker compose up -d
-   ```
+- `metadata`: lab name, description, and ASN ranges
+- `roles`: policy defaults for core/transit/edge devices
+- `routers`: ASNs, router-IDs, local networks, and link relationships
+- `links`: Layer-2 fabrics with IPv4 subnets
+- `prefix_owners`: which routers originate which prefixes
+- `scenarios`: scenario descriptions + orchestrator entry points
+- `services`: observer and attack-controller metadata
+- `pcap_pipeline`: capture buffer details and shared volumes
 
-2. **Check baseline status**
+See the included `lab_config.yaml` for a documented example.
 
-   ```bash
-   python3 orchestrator.py status
-   ```
+## Generator usage
 
-   R1 should originate `10.10.1.0/24` and learn `10.20.3.0/24` via R2 → R3.
+```bash
+python3 tools/lab_gen.py lab_config.yaml --output-dir generated_lab
+```
 
-3. **Run scenarios**
+Use `--validate-only` to confirm the configuration without writing any
+artifacts. The generator currently outputs:
 
-   - Classic prefix hijack:
+- `generated_lab/docker-compose.generated.yml`
+- `generated_lab/frr/<router>/frr.conf`
+- `generated_lab/topology-metadata.json`
 
-     ```bash
-     python3 orchestrator.py scenario hijack
-     python3 orchestrator.py status
-     ```
+## Services
 
-   - More-specific hijack:
+### Attack Controller
 
-     ```bash
-     python3 orchestrator.py scenario more-specific
-     python3 orchestrator.py status
-     ```
+- Located in `services/attack_controller`
+- Provides `/healthz`, `/scenarios`, and `/scenario/{name}` endpoints
+- Reads scenarios from `lab_config.yaml`
+- Shells out to `orchestrator.py` until its logic is inlined
 
-   - Reset to the clean state:
+### Observer
 
-     ```bash
-     python3 orchestrator.py scenario normal
-     ```
+- Located in `services/observer`
+- Serves HTMX dashboard + JSON APIs for status and PCAP metadata
+- Communicates exclusively with the Attack Controller
+- Mounts the shared `lab_state` volume read-only for packet captures
 
-4. **Tear down the lab**
+## docker compose
 
-   ```bash
-   docker compose down
-   ```
+The root `docker-compose.yml` includes the legacy 3-router lab plus the
+new observer and attack controller containers. Future iterations will
+replace these static definitions with generator output once multi-AS
+scenarios are ready.
 
-## Extending the lab
+## Roadmap
 
-The setup intentionally mirrors a simple three-AS topology so you can
-easily add more routers or experiments such as RPKI validation,
-AS-path prepending, or packet captures (`docker compose exec r2 tcpdump -i any port 179`).
+1. Expand generator coverage (policy templates, netprobe, PCAP ring
+   buffers)
+2. Integrate orchestrator logic directly into the Attack Controller
+3. Build topology visualization + per-prefix views in the Observer
+4. Introduce RPKI/RPKI caches, route-leak scenarios, and telemetry
+   backends
