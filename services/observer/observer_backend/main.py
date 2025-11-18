@@ -12,6 +12,7 @@ app = FastAPI(title="BGP Observer", version="0.1.0")
 app.include_router(api_router, prefix="/api")
 templates = Jinja2Templates(directory="/app/frontend/templates")
 app.mount("/static", StaticFiles(directory="/app/frontend/static"), name="static")
+app.mount("/captures", StaticFiles(directory="/captures"), name="captures")
 
 
 @app.get("/", response_class=HTMLResponse)
