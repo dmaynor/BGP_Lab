@@ -431,12 +431,12 @@ def _parse_args() -> argparse.Namespace:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    status_parser = subparsers.add_subparsers().add_parser(
+    status_parser = subparsers.add_parser(
         "status", help="Show BGP tables on key routers"
     )
     status_parser.set_defaults(command="status")
 
-    scenario_parser = subparsers.add_subparsers().add_parser(
+    scenario_parser = subparsers.add_parser(
         "scenario", help="Apply a named BGP scenario"
     )
     scenario_parser.add_argument(
