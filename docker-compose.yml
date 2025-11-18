@@ -77,6 +77,7 @@ services:
     volumes:
       - lab_state:/captures:ro
       - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - ./topology-metadata.json:/lab/topology-metadata.json:ro
     depends_on:
       - attack_controller
     networks:

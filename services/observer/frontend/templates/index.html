@@ -21,6 +21,12 @@
         <p>Click "Refresh status" to load lab details.</p>
       </section>
       <section class="card">
+        <h2>Topology overview</h2>
+        <div id="topology-panel">
+          <p>Loading topology metadata…</p>
+        </div>
+      </section>
+      <section class="card">
         <h2>PCAP files</h2>
         <div
           id="pcap-panel"
@@ -31,5 +37,85 @@
         ></div>
       </section>
     </main>
+    <script>
+      async function loadTopology() {
+        const container = document.getElementById("topology-panel");
+        if (!container) {
+          return;
+        }
+        try {
+          const resp = await fetch("/api/topology");
+          if (!resp.ok) {
+            throw new Error(`Failed to load topology (${resp.status})`);
+          }
+          const data = await resp.json();
+          container.innerHTML = renderTopology(data);
+        } catch (error) {
+          container.innerHTML = `<p class="error">${error.message}</p>`;
+        }
+      }
+
+      function renderTopology(topology) {
+        const routerRows = topology.routers
+          .map(
+            (router) => `
+          <tr>
+            <td>${router.name}</td>
+            <td>${router.asn}</td>
+            <td>${router.role}</td>
+            <td>${router.networks.join("<br/>") || "–"}</td>
+            <td>${router.peers.join(", ") || "–"}</td>
+          </tr>`
+          )
+          .join("");
+        const linkRows = Object.entries(topology.links)
+          .map(
+            ([name, link]) => `
+          <tr>
+            <td>${name}</td>
+            <td>${link.ipv4_subnet}</td>
+          </tr>`
+          )
+          .join("");
+        return `
+        <p><strong>${topology.lab_name}</strong> — ${topology.description}</p>
+        <div class="topology-grid">
+          <div>
+            <h3>Routers</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>ASN</th>
+                  <th>Role</th>
+                  <th>Networks</th>
+                  <th>Peers</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${routerRows || '<tr><td colspan="5">No routers defined.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>Links</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>IPv4 subnet</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linkRows || '<tr><td colspan="2">No links defined.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
+
+      loadTopology();
+      setInterval(loadTopology, 60000);
+    </script>
   </body>
 </html>

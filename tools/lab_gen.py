@@ -142,6 +142,7 @@ def build_router_template_contexts(config: LabConfig) -> List[Dict]:
                 "interfaces": interfaces,
                 "env": {"ASN": router.asn},
                 "prefixes": router.networks,
+                "networks": router.networks,
                 "peers": peer_entries,
             }
         )
