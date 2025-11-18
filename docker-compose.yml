@@ -8,7 +8,7 @@ services:
       - FRR_IPV6=0
     networks:
       net_ab:
-        ipv4_address: 10.0.12.1
+        ipv4_address: 10.200.0.10
     volumes:
       - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r1/daemons:/etc/frr/daemons:ro
@@ -26,9 +26,9 @@ services:
       - FRR_IPV6=0
     networks:
       net_ab:
-        ipv4_address: 10.0.12.2
+        ipv4_address: 10.200.0.11
       net_bc:
-        ipv4_address: 10.0.23.2
+        ipv4_address: 10.200.1.10
     volumes:
       - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r2/daemons:/etc/frr/daemons:ro
@@ -46,7 +46,7 @@ services:
       - FRR_IPV6=0
     networks:
       net_bc:
-        ipv4_address: 10.0.23.3
+        ipv4_address: 10.200.1.11
     volumes:
       - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r3/daemons:/etc/frr/daemons:ro
@@ -60,9 +60,9 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.0.12.0/24
+        - subnet: 10.200.0.0/24
   net_bc:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.0.23.0/24
+        - subnet: 10.200.1.0/24
