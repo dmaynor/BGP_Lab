@@ -163,7 +163,8 @@ def render_templates(config: LabConfig, output_dir: Path) -> None:
             "shared_volume": config.pcap_pipeline.get("shared_volume", "lab_state"),
         },
     )
-    (output_dir / "docker-compose.generated.yml").write_text(compose_payload, encoding="utf-8")
+    compose_path = output_dir / "docker-compose.yml"
+    compose_path.write_text(compose_payload, encoding="utf-8")
     frr_template = env.get_template("frr.conf.j2")
     for router in router_contexts:
         router_dir = output_dir / "frr" / router["name"]
