@@ -1,0 +1,9 @@
+# Core dependencies for BGP Attack Lab
+# Used by tools/lab_gen.py and other scripts
+pyyaml==6.0.1
+jinja2==3.1.3
+
+# Service dependencies (attack_controller and observer)
+fastapi==0.110.1
+uvicorn[standard]==0.29.0
+httpx==0.27.0

@@ -18,6 +18,50 @@ facing dashboard.
 - **Observer** – FastAPI + HTMX dashboard that surfaces scenario state
   and PCAP listings without giving students direct router access.
 
+## Python Virtual Environment Setup
+
+This lab uses Python scripts and services that require specific
+dependencies. It is recommended to use a virtual environment to manage
+these dependencies separately from your system Python installation.
+
+### Creating and Using a Virtual Environment
+
+**On Linux/macOS:**
+
+```bash
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# When you're done working, deactivate the virtual environment
+deactivate
+```
+
+**On Windows:**
+
+```powershell
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# When you're done working, deactivate the virtual environment
+deactivate
+```
+
+Once activated, your shell prompt will typically show `(venv)` to indicate
+the virtual environment is active. All Python commands will use the
+isolated environment's packages.
+
 ## Repository layout
 
 ```
