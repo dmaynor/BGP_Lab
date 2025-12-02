@@ -1,1 +1,7 @@
 generated_lab/
+
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
