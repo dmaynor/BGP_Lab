@@ -7,8 +7,9 @@ services:
     container_name: {{ router.name }}
     hostname: {{ router.name }}
     volumes:
-      - ./frr/{{ router.name }}/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr/{{ router.name }}/frr.conf:/etc/frr/frr.conf
       - ./frr/{{ router.name }}/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
 {% if pcap_pipeline.enabled %}
       - {{ pcap_pipeline.shared_volume }}:/captures
 {% endif %}

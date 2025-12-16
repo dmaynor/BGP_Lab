@@ -8,6 +8,7 @@ services:
     volumes:
       - ./frr/r1/frr.conf:/etc/frr/frr.conf
       - ./frr/r1/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -26,6 +27,7 @@ services:
     volumes:
       - ./frr/r2/frr.conf:/etc/frr/frr.conf
       - ./frr/r2/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -48,6 +50,7 @@ services:
     volumes:
       - ./frr/r3/frr.conf:/etc/frr/frr.conf
       - ./frr/r3/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -66,6 +69,7 @@ services:
     volumes:
       - ./frr/r4/frr.conf:/etc/frr/frr.conf
       - ./frr/r4/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -86,6 +90,7 @@ services:
     volumes:
       - ./frr/r5/frr.conf:/etc/frr/frr.conf
       - ./frr/r5/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
     networks:
       lab_mgmt:
