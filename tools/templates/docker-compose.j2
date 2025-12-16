@@ -3,12 +3,13 @@ version: "3.9"
 services:
 {% for router in routers %}
   {{ router.name }}:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: {{ router.name }}
     hostname: {{ router.name }}
     volumes:
       - ./frr/{{ router.name }}/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/{{ router.name }}/daemons:/etc/frr/daemons:ro
+      - ./bin/:/usr/local/bin/:ro
 {% if pcap_pipeline.enabled %}
       - {{ pcap_pipeline.shared_volume }}:/captures
 {% endif %}
@@ -28,11 +29,11 @@ services:
 {% endif %}
 {% endfor %}
   attack_controller:
-    build: ../services/attack_controller
+    build: ./services/attack_controller
     environment:
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
-      - ../lab_config.yaml:/lab/lab_config.yaml:ro
+      - ./lab_config.yaml:/lab/lab_config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
 {% for router in routers %}
@@ -43,14 +44,15 @@ services:
         ipv4_address: 10.255.0.10
 
   observer:
-    build: ../services/observer
+    build: ./services/observer
     environment:
       ATTACK_CONTROLLER_URL: http://attack_controller:9000
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
       - {{ pcap_pipeline.shared_volume }}:/captures:ro
-      - ../lab_config.yaml:/lab/lab_config.yaml:ro
+      - ./lab_config.yaml:/lab/lab_config.yaml:ro
       - ./topology-metadata.json:/lab/topology-metadata.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - attack_controller
     networks:

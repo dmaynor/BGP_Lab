@@ -1,26 +1,43 @@
+frr version 8.4.1_git
 frr defaults traditional
-service integrated-vtysh-config
-log syslog informational
-
 hostname {{ router.name }}
+log syslog informational
+no ipv6 forwarding
+!
 password zebra
 enable password zebra
-
+!
+{% if router.prefixes %}
+{% for prefix in router.prefixes %}
+ip route {{ prefix }} Null0
+{% endfor %}
+!
+{% endif %}
 router bgp {{ router.asn }}
-  bgp router-id {{ router.router_id }}
-  timers bgp 3 9
+ bgp router-id {{ router.router_id }}
+ no bgp ebgp-requires-policy
+ no bgp default ipv4-unicast
+ timers bgp 3 9
+{% for peer in router.peers %}
+ neighbor {{ peer.neighbor_ip }} remote-as {{ peer.remote_asn }}
+ neighbor {{ peer.neighbor_ip }} description {{ peer.neighbor_name }}
+{% endfor %}
+ !
+ address-family ipv4 unicast
 {% for prefix in router.prefixes %}
   network {{ prefix }}
 {% endfor %}
 {% for peer in router.peers %}
-  neighbor {{ peer.neighbor_ip }} remote-as {{ peer.remote_asn }}
-  neighbor {{ peer.neighbor_ip }} description {{ peer.neighbor_name }}
+  neighbor {{ peer.neighbor_ip }} activate
 {% if router.role == 'core' %}
   neighbor {{ peer.neighbor_ip }} route-map CORE-OUT out
 {% endif %}
 {% endfor %}
-
+ exit-address-family
+exit
+!
 {% if router.role == 'core' %}
 route-map CORE-OUT permit 10
-  set local-preference 200
+ set local-preference 200
+!
 {% endif %}
