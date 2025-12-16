@@ -2,11 +2,11 @@ version: "3.9"
 
 services:
   r1:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: r1
     hostname: r1
     volumes:
-      - ./frr/r1/frr.conf:/etc/frr/frr.conf
+      - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r1/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
@@ -21,11 +21,11 @@ services:
     environment:
       ASN: "65001"
   r2:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: r2
     hostname: r2
     volumes:
-      - ./frr/r2/frr.conf:/etc/frr/frr.conf
+      - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r2/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
@@ -44,11 +44,11 @@ services:
     environment:
       ASN: "65002"
   r3:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: r3
     hostname: r3
     volumes:
-      - ./frr/r3/frr.conf:/etc/frr/frr.conf
+      - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r3/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
@@ -63,11 +63,11 @@ services:
     environment:
       ASN: "65003"
   r4:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: r4
     hostname: r4
     volumes:
-      - ./frr/r4/frr.conf:/etc/frr/frr.conf
+      - ./frr/r4/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r4/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
@@ -84,11 +84,11 @@ services:
     environment:
       ASN: "65004"
   r5:
-    image: frrouting/frr:latest
+    image: frrouting/frr:v8.4.1
     container_name: r5
     hostname: r5
     volumes:
-      - ./frr/r5/frr.conf:/etc/frr/frr.conf
+      - ./frr/r5/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r5/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
       - lab_state:/captures
@@ -108,8 +108,6 @@ services:
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
       - ./lab_config.yaml:/lab/lab_config.yaml:ro
-      - ./orchestrator.py:/workspace/BGP_Lab/orchestrator.py:ro
-      - ./docker-compose.yml:/workspace/BGP_Lab/docker-compose.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - r1

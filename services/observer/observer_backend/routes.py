@@ -128,10 +128,10 @@ def topology() -> TopologyModel:
 
 
 def _parse_bgp_routes(router_name: str) -> Dict[str, Any]:
-    """Parse BGP routes from a router using vtysh."""
+    """Parse BGP routes from a router using vtysh JSON output."""
     try:
         result = subprocess.run(
-            ["docker", "exec", router_name, "vtysh", "-c", "show ip bgp"],
+            ["docker", "exec", router_name, "vtysh", "-c", "show ip bgp json"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -139,58 +139,48 @@ def _parse_bgp_routes(router_name: str) -> Dict[str, Any]:
         if result.returncode != 0:
             return {"error": f"Failed to get BGP routes from {router_name}"}
 
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            return {"error": f"Invalid JSON from {router_name}: {e}"}
+
         routes = {}
-        lines = result.stdout.split("\n")
-        current_prefix = None
 
-        for i, line in enumerate(lines):
-            # Match lines like: "*> 10.10.1.0/24     10.0.0.2                 0             0 65001 i"
-            match = re.match(r'\s*([*>= ]+)\s+(\d+\.\d+\.\d+\.\d+/\d+)\s+(\S+)', line)
-            if match:
-                status, prefix, nexthop = match.groups()
-                current_prefix = prefix
-            else:
-                # Match continuation lines like: "*>                  10.0.0.2  ..."
-                cont_match = re.match(r'\s*([*>= ]+)\s+(\S+)', line)
-                if cont_match and current_prefix:
-                    status, nexthop = cont_match.groups()
-                    prefix = current_prefix
-                else:
-                    continue
+        # Iterate through routes in JSON output
+        for prefix, paths in data.get("routes", {}).items():
+            routes[prefix] = []
 
-            # Extract AS path and origin from the rest of the line
-            if match:
-                rest_of_line = line[match.end():].strip()
-            else:
-                rest_of_line = line[cont_match.end():].strip()
+            for path in paths:
+                # Extract nexthop from nexthops array
+                nexthop = "0.0.0.0"
+                nexthops = path.get("nexthops", [])
+                if nexthops:
+                    # Use the first used nexthop, or just the first one
+                    for nh in nexthops:
+                        if nh.get("used", False):
+                            nexthop = nh.get("ip", "0.0.0.0")
+                            break
+                    else:
+                        nexthop = nexthops[0].get("ip", "0.0.0.0")
 
-            parts = rest_of_line.split()
+                # Parse AS path from string to list
+                as_path_str = path.get("path", "")
+                as_path = [asn for asn in as_path_str.split() if asn]
 
-            # AS path is usually after metric/localpref/weight (numbers) and before origin (i/e/?)
-            as_path = []
-            origin = 'i'
+                # Convert origin code from FRR format to traditional format
+                origin_map = {
+                    "IGP": "i",
+                    "EGP": "e",
+                    "incomplete": "?"
+                }
+                origin = origin_map.get(path.get("origin", "IGP"), "i")
 
-            # Find origin code at the end
-            if parts and parts[-1] in ['i', 'e', '?']:
-                origin = parts[-1]
-                # AS path numbers are before origin
-                for part in reversed(parts[:-1]):
-                    if part.isdigit():
-                        as_path.insert(0, part)
-                    elif not part.isdigit() and as_path:
-                        break
-
-            if prefix not in routes:
-                routes[prefix] = []
-
-            is_best = '>' in status
-
-            routes[prefix].append({
-                "nexthop": nexthop,
-                "as_path": as_path,
-                "best": is_best,
-                "origin": origin,
-            })
+                routes[prefix].append({
+                    "nexthop": nexthop,
+                    "as_path": as_path,
+                    "best": path.get("bestpath", False),
+                    "origin": origin,
+                })
 
         return {"router": router_name, "routes": routes}
     except Exception as e:

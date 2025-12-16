@@ -32,21 +32,21 @@ The lab implements a multi-AS (Autonomous System) network topology with 5 router
 
 ### Router Details
 
-| Router | ASN   | Role    | Prefixes       | Router ID  | MGMt IP      | Function        |
-|--------|-------|---------|----------------|------------|--------------|-----------------|
-| R1     | 65001 | Edge    | 10.10.1.0/24   | 1.1.1.1    | 172.30.0.11  | **Victim**      |
-| R2     | 65002 | Transit | None           | 2.2.2.2    | 172.30.0.12  | **Provider**    |
-| R3     | 65003 | Edge    | 10.20.3.0/24   | 3.3.3.3    | 172.30.0.13  | **Attacker**    |
-| R4     | 65004 | Core    | None           | 4.4.4.4    | 172.30.0.14  | **Core Transit**|
-| R5     | 65005 | Edge    | 10.50.5.0/24   | 5.5.5.5    | 172.30.0.15  | **Observer Net**|
+| Router | ASN   | Role    | Prefixes       | Router ID   | MGMt IP      | Function        |
+|--------|-------|---------|----------------|-------------|--------------|-----------------|
+| R1     | 65001 | Edge    | 10.10.1.0/24   | 10.255.0.1  | 10.255.0.11  | **Victim**      |
+| R2     | 65002 | Transit | None           | 10.255.0.2  | 10.255.0.12  | **Provider**    |
+| R3     | 65003 | Edge    | 10.20.3.0/24   | 10.255.0.3  | 10.255.0.13  | **Attacker**    |
+| R4     | 65004 | Core    | None           | 10.255.0.4  | 10.255.0.14  | **Core Transit**|
+| R5     | 65005 | Edge    | 10.50.5.0/24   | 10.255.0.5  | 10.255.0.15  | **Observer Net**|
 
 ### Network Fabrics (Peering Links)
 
-- **fabric-a** (192.0.2.0/29): Connects R1 ↔ R2
-- **fabric-b** (198.51.100.0/29): Connects R2 ↔ R3
+- **fabric-a** (10.0.0.0/29): Connects R1 ↔ R2
+- **fabric-b** (10.0.0.8/29): Connects R2 ↔ R3
 - **fabric-c** (10.0.0.16/29): Connects R2 ↔ R4
 - **fabric-d** (10.0.0.24/29): Connects R4 ↔ R5
-- **lab_mgmt** (172.30.0.0/24): Management network for all containers
+- **lab_mgmt** (10.255.0.0/24): Management network for all containers
 
 ### Role-Based Policy Configuration
 
@@ -207,8 +207,8 @@ vtysh -c "configure terminal" \
 **Commands Executed**:
 ```bash
 # On R2 (transit)
-ip route 10.10.1.0/24 10.200.0.10
-ip route 10.20.3.0/24 10.200.1.11
+ip route 10.10.1.0/24 10.0.0.2
+ip route 10.20.3.0/24 10.0.0.11
 router bgp 65002
   address-family ipv4 unicast
     network 10.10.1.0/24
@@ -242,7 +242,7 @@ route-map ASPATH-FORGE permit 10
 router bgp 65003
   address-family ipv4 unicast
     network 10.10.1.0/24
-    neighbor 10.200.1.10 route-map ASPATH-FORGE out
+    neighbor 10.0.0.10 route-map ASPATH-FORGE out
 ```
 
 **Impact**:
