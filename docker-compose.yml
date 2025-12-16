@@ -2,72 +2,119 @@ version: "3.9"
 
 services:
   r1:
-    image: frrouting/frr:stable
+    image: frrouting/frr:latest
     container_name: r1
     hostname: r1
     volumes:
-      - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr/r1/frr.conf:/etc/frr/frr.conf
       - ./frr/r1/daemons:/etc/frr/daemons:ro
       - lab_state:/captures
     networks:
-      fabric-a:
-        ipv4_address: 192.0.2.2
       lab_mgmt:
-        ipv4_address: 172.30.0.11
+        ipv4_address: 10.255.0.11
+      fabric-a:
+        ipv4_address: 10.0.0.2
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-
+    environment:
+      ASN: "65001"
   r2:
-    image: frrouting/frr:stable
+    image: frrouting/frr:latest
     container_name: r2
     hostname: r2
     volumes:
-      - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr/r2/frr.conf:/etc/frr/frr.conf
       - ./frr/r2/daemons:/etc/frr/daemons:ro
       - lab_state:/captures
     networks:
-      fabric-a:
-        ipv4_address: 192.0.2.1
-      fabric-b:
-        ipv4_address: 198.51.100.2
       lab_mgmt:
-        ipv4_address: 172.30.0.12
+        ipv4_address: 10.255.0.12
+      fabric-a:
+        ipv4_address: 10.0.0.3
+      fabric-b:
+        ipv4_address: 10.0.0.10
+      fabric-c:
+        ipv4_address: 10.0.0.18
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-
+    environment:
+      ASN: "65002"
   r3:
-    image: frrouting/frr:stable
+    image: frrouting/frr:latest
     container_name: r3
     hostname: r3
     volumes:
-      - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
+      - ./frr/r3/frr.conf:/etc/frr/frr.conf
       - ./frr/r3/daemons:/etc/frr/daemons:ro
       - lab_state:/captures
     networks:
-      fabric-b:
-        ipv4_address: 198.51.100.1
       lab_mgmt:
-        ipv4_address: 172.30.0.13
+        ipv4_address: 10.255.0.13
+      fabric-b:
+        ipv4_address: 10.0.0.11
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-
+    environment:
+      ASN: "65003"
+  r4:
+    image: frrouting/frr:latest
+    container_name: r4
+    hostname: r4
+    volumes:
+      - ./frr/r4/frr.conf:/etc/frr/frr.conf
+      - ./frr/r4/daemons:/etc/frr/daemons:ro
+      - lab_state:/captures
+    networks:
+      lab_mgmt:
+        ipv4_address: 10.255.0.14
+      fabric-c:
+        ipv4_address: 10.0.0.19
+      fabric-d:
+        ipv4_address: 10.0.0.26
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    environment:
+      ASN: "65004"
+  r5:
+    image: frrouting/frr:latest
+    container_name: r5
+    hostname: r5
+    volumes:
+      - ./frr/r5/frr.conf:/etc/frr/frr.conf
+      - ./frr/r5/daemons:/etc/frr/daemons:ro
+      - lab_state:/captures
+    networks:
+      lab_mgmt:
+        ipv4_address: 10.255.0.15
+      fabric-d:
+        ipv4_address: 10.0.0.27
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    environment:
+      ASN: "65005"
   attack_controller:
     build: ./services/attack_controller
     environment:
       LAB_CONFIG: /lab/lab_config.yaml
     volumes:
       - ./lab_config.yaml:/lab/lab_config.yaml:ro
+      - ./orchestrator.py:/workspace/BGP_Lab/orchestrator.py:ro
+      - ./docker-compose.yml:/workspace/BGP_Lab/docker-compose.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - r1
       - r2
       - r3
+      - r4
+      - r5
     networks:
       lab_mgmt:
-        ipv4_address: 172.30.0.20
+        ipv4_address: 10.255.0.10
 
   observer:
     build: ./services/observer
@@ -78,29 +125,41 @@ services:
       - lab_state:/captures:ro
       - ./lab_config.yaml:/lab/lab_config.yaml:ro
       - ./topology-metadata.json:/lab/topology-metadata.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - attack_controller
     networks:
       lab_mgmt:
-        ipv4_address: 172.30.0.30
+        ipv4_address: 10.255.0.20
+    ports:
+      - "8080:8080"
 
 networks:
   lab_mgmt:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.30.0.0/24
+        - subnet: 10.255.0.0/24
   fabric-a:
     driver: bridge
     ipam:
       config:
-        - subnet: 192.0.2.0/29
+        - subnet: 10.0.0.0/29
   fabric-b:
     driver: bridge
     ipam:
       config:
-        - subnet: 198.51.100.0/29
-
+        - subnet: 10.0.0.8/29
+  fabric-c:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.16/29
+  fabric-d:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.24/29
 volumes:
   lab_state:
     driver: local

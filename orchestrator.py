@@ -156,7 +156,13 @@ def vtysh_bgp_config(container: str, bgp_asn: int, commands: List[str]) -> None:
     ]
     full_cmd = _build_vtysh_command(container, vty_commands)
     exit_code, stdout, stderr = run_command(full_cmd)
-    if exit_code != 0:
+    # Ignore benign errors from cleanup commands (removing non-existent config)
+    benign_errors = [
+        "Can't find",
+        "Refusing to remove",
+        "Can't open configuration file /etc/frr/vtysh.conf",
+    ]
+    if exit_code != 0 and not any(err in stdout for err in benign_errors):
         raise RuntimeError(
             f"Failed to apply BGP configuration on {container}\n"
             f"stdout:\n{stdout}\n"
@@ -191,7 +197,13 @@ def vtysh_global_config(container: str, commands: List[str]) -> None:
     vty_commands: List[str] = ["configure terminal", *commands, "end", "write memory"]
     full_cmd = _build_vtysh_command(container, vty_commands)
     exit_code, stdout, stderr = run_command(full_cmd)
-    if exit_code != 0:
+    # Ignore benign errors from cleanup commands (removing non-existent config)
+    benign_errors = [
+        "Can't find static route",
+        "Refusing to remove a non-existent",
+        "Can't open configuration file /etc/frr/vtysh.conf",
+    ]
+    if exit_code != 0 and not any(err in stdout for err in benign_errors):
         raise RuntimeError(
             f"Failed to apply global configuration on {container}\n"
             f"stdout:\n{stdout}\n"
@@ -213,21 +225,21 @@ def scenario_normal() -> None:
         commands=[
             "no route-map ASPATH-FORGE permit 10",
             "no ip route 10.10.1.0/24 Null0",
-            "no ip route 0.0.0.0/0 10.200.1.10",
+            "no ip route 0.0.0.0/0 10.0.0.10",
         ],
     )
     vtysh_global_config(
         container="r2",
         commands=[
-            "no ip route 10.10.1.0/24 10.200.0.10",
-            "no ip route 10.20.3.0/24 10.200.1.11",
+            "no ip route 10.10.1.0/24 10.0.0.2",
+            "no ip route 10.20.3.0/24 10.0.0.11",
         ],
     )
     vtysh_bgp_config(
         container="r3",
         bgp_asn=65003,
         commands=[
-            "no neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
             "no network 10.10.1.0/24",
             "no network 10.10.1.128/25",
             "network 10.20.3.0/24",
@@ -253,12 +265,25 @@ def scenario_hijack() -> None:
     ``hijack`` scenario.
     """
     print("[*] Setting scenario: hijack (attacker announces 10.10.1.0/24)")
+    # Add static route for the hijacked prefix so BGP can originate it
+    vtysh_global_config(
+        container="r3",
+        commands=["ip route 10.10.1.0/24 Null0"],
+    )
+    # Cleanup previous scenario configs (separate call to avoid abort on error)
     vtysh_bgp_config(
         container="r3",
         bgp_asn=65003,
         commands=[
-            "no neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
             "no network 10.10.1.128/25",
+        ],
+    )
+    # Apply the hijack configuration
+    vtysh_bgp_config(
+        container="r3",
+        bgp_asn=65003,
+        commands=[
             "network 10.20.3.0/24",
             "network 10.10.1.0/24",
         ],
@@ -277,11 +302,16 @@ def scenario_more_specific() -> None:
         "[*] Setting scenario: more-specific hijack "
         "(attacker announces 10.10.1.128/25)"
     )
+    # Add static route for the more-specific hijacked prefix
+    vtysh_global_config(
+        container="r3",
+        commands=["ip route 10.10.1.128/25 Null0"],
+    )
     vtysh_bgp_config(
         container="r3",
         bgp_asn=65003,
         commands=[
-            "no neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
             "network 10.20.3.0/24",
             "network 10.10.1.128/25",
             "no network 10.10.1.0/24",
@@ -311,7 +341,7 @@ def scenario_leak() -> None:
         container="r3",
         bgp_asn=65003,
         commands=[
-            "no neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
             "no network 10.10.1.0/24",
             "no network 10.10.1.128/25",
             "network 10.20.3.0/24",
@@ -322,8 +352,8 @@ def scenario_leak() -> None:
     vtysh_global_config(
         container="r2",
         commands=[
-            "ip route 10.10.1.0/24 10.200.0.10",
-            "ip route 10.20.3.0/24 10.200.1.11",
+            "ip route 10.10.1.0/24 10.0.0.2",
+            "ip route 10.20.3.0/24 10.0.0.11",
         ],
     )
     vtysh_bgp_config(
@@ -351,6 +381,11 @@ def scenario_aspath() -> None:
     * The victim prefix ``10.10.1.0/24`` is originated from ``r3``.
     """
     print("[*] Setting scenario: AS-PATH forgery hijack")
+    # Add static route for the hijacked prefix
+    vtysh_global_config(
+        container="r3",
+        commands=["ip route 10.10.1.0/24 Null0"],
+    )
     # Install / refresh the route-map.
     vtysh_global_config(
         container="r3",
@@ -367,7 +402,7 @@ def scenario_aspath() -> None:
             "network 10.20.3.0/24",
             "network 10.10.1.0/24",
             "no network 10.10.1.128/25",
-            "neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "neighbor 10.0.0.10 route-map ASPATH-FORGE out",
         ],
     )
     print("[+] Scenario 'aspath' applied.")
@@ -393,7 +428,7 @@ def scenario_blackhole() -> None:
         container="r3",
         bgp_asn=65003,
         commands=[
-            "no neighbor 10.200.1.10 route-map ASPATH-FORGE out",
+            "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
             "network 10.20.3.0/24",
             "network 10.10.1.0/24",
             "no network 10.10.1.128/25",

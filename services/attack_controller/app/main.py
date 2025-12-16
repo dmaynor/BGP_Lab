@@ -33,6 +33,9 @@ settings = LabSettings()
 registry = ScenarioRegistry(settings.scenarios)
 orchestrator = OrchestratorClient()
 
+# Track the currently active scenario
+active_scenario = "normal"
+
 
 @app.get("/healthz")
 def healthcheck() -> dict:
@@ -45,12 +48,15 @@ def list_scenarios() -> dict:
         "scenarios": [
             {"name": scenario.name, "description": scenario.description}
             for scenario in registry.list()
-        ]
+        ],
+        "active_scenario": active_scenario,
     }
 
 
 @app.post("/scenario/{scenario_name}")
 def trigger_scenario(scenario_name: str) -> dict:
+    global active_scenario
+
     scenario = registry.get(scenario_name)
     if not scenario:
         raise HTTPException(status_code=404, detail="scenario not found")
@@ -63,4 +69,8 @@ def trigger_scenario(scenario_name: str) -> dict:
                 "stderr": completed.stderr,
             },
         )
-    return {"stdout": completed.stdout}
+
+    # Update active scenario on success
+    active_scenario = scenario_name
+
+    return {"detail": f"Scenario '{scenario_name}' activated"}

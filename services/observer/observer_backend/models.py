@@ -33,6 +33,7 @@ class Scenario(BaseModel):
 class LabStatus(BaseModel):
     scenarios: list[Scenario]
     routers: list[str]
+    active_scenario: str = "normal"
 
 
 class RouterMetadata(BaseModel):
