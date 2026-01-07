@@ -5,10 +5,12 @@ services:
     image: frrouting/frr:v8.4.1
     container_name: r1
     hostname: r1
+    privileged: true
     volumes:
       - ./frr/r1/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r1/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
+      - ./config/:/config
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -24,10 +26,12 @@ services:
     image: frrouting/frr:v8.4.1
     container_name: r2
     hostname: r2
+    privileged: true
     volumes:
       - ./frr/r2/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r2/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
+      - ./config/:/config
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -46,11 +50,13 @@ services:
   r3:
     image: frrouting/frr:v8.4.1
     container_name: r3
+    privileged: true
     hostname: r3
     volumes:
       - ./frr/r3/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r3/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
+      - ./config/:/config
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -66,10 +72,12 @@ services:
     image: frrouting/frr:v8.4.1
     container_name: r4
     hostname: r4
+    privileged: true
     volumes:
       - ./frr/r4/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r4/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
+      - ./config/:/config
       - lab_state:/captures
     networks:
       lab_mgmt:
@@ -87,10 +95,12 @@ services:
     image: frrouting/frr:v8.4.1
     container_name: r5
     hostname: r5
+    privileged: true
     volumes:
       - ./frr/r5/frr.conf:/etc/frr/frr.conf:ro
       - ./frr/r5/daemons:/etc/frr/daemons:ro
       - ./bin/:/usr/local/bin/:ro
+      - ./config/:/config
       - lab_state:/captures
     networks:
       lab_mgmt:

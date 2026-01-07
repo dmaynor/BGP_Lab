@@ -162,7 +162,7 @@ class ScenariosExecutor:
     def scenario_normal(self) -> None:
         """Configure the lab in the baseline "normal" state.
 
-        * Attacker (r3) advertises only its own prefix 10.20.3.0/24.
+        * Attacker (r3) is silent and does not advertise any prefixes.
         * Any stray hijack/leak/blackhole artefacts from previous scenarios
           are cleaned up as best-effort.
         """
@@ -187,16 +187,18 @@ class ScenariosExecutor:
             container="r3",
             bgp_asn=65003,
             commands=[
+                "neighbor 10.0.0.10 shutdown",
                 "no neighbor 10.0.0.10 route-map ASPATH-FORGE out",
                 "no network 10.10.1.0/24",
                 "no network 10.10.1.128/25",
-                "network 10.20.3.0/24",
+                "no network 10.20.3.0/24",
             ],
         )
         self.vtysh_bgp_config(
             container="r2",
             bgp_asn=65002,
             commands=[
+                "neighbor 10.0.0.11 shutdown",
                 "no network 10.10.1.0/24",
                 "no network 10.20.3.0/24",
             ],
@@ -212,6 +214,22 @@ class ScenariosExecutor:
         print("[*] Setting scenario: hijack (attacker announces 10.10.1.0/24)")
         # Cleanup previous scenario configs by resetting to normal
         self.scenario_normal()
+        # Bring BGP session back up on R2's side
+        self.vtysh_bgp_config(
+            container="r2",
+            bgp_asn=65002,
+            commands=[
+                "no neighbor 10.0.0.11 shutdown",
+            ],
+        )
+        # Bring BGP session back up on R3's side
+        self.vtysh_bgp_config(
+            container="r3",
+            bgp_asn=65003,
+            commands=[
+                "no neighbor 10.0.0.10 shutdown",
+            ],
+        )
         # Add static route for the hijacked prefix so BGP can originate it
         self.vtysh_global_config(
             container="r3",
@@ -241,6 +259,22 @@ class ScenariosExecutor:
         )
         # Cleanup previous scenario configs by resetting to normal
         self.scenario_normal()
+        # Bring BGP session back up on R2's side
+        self.vtysh_bgp_config(
+            container="r2",
+            bgp_asn=65002,
+            commands=[
+                "no neighbor 10.0.0.11 shutdown",
+            ],
+        )
+        # Bring BGP session back up on R3's side
+        self.vtysh_bgp_config(
+            container="r3",
+            bgp_asn=65003,
+            commands=[
+                "no neighbor 10.0.0.10 shutdown",
+            ],
+        )
         # Add static route for the more-specific hijacked prefix
         self.vtysh_global_config(
             container="r3",
@@ -271,6 +305,22 @@ class ScenariosExecutor:
         print("[*] Setting scenario: route leak (transit re-originates both edges)")
         # Cleanup previous scenario configs by resetting to normal
         self.scenario_normal()
+        # Bring BGP session back up on R2's side
+        self.vtysh_bgp_config(
+            container="r2",
+            bgp_asn=65002,
+            commands=[
+                "no neighbor 10.0.0.11 shutdown",
+            ],
+        )
+        # Bring BGP session back up on R3's side
+        self.vtysh_bgp_config(
+            container="r3",
+            bgp_asn=65003,
+            commands=[
+                "no neighbor 10.0.0.10 shutdown",
+            ],
+        )
         # Static routes on the transit so it can legitimately originate both
         # prefixes via BGP.
         self.vtysh_global_config(
@@ -306,6 +356,22 @@ class ScenariosExecutor:
         print("[*] Setting scenario: AS-PATH forgery hijack")
         # Cleanup previous scenario configs by resetting to normal
         self.scenario_normal()
+        # Bring BGP session back up on R2's side
+        self.vtysh_bgp_config(
+            container="r2",
+            bgp_asn=65002,
+            commands=[
+                "no neighbor 10.0.0.11 shutdown",
+            ],
+        )
+        # Bring BGP session back up on R3's side
+        self.vtysh_bgp_config(
+            container="r3",
+            bgp_asn=65003,
+            commands=[
+                "no neighbor 10.0.0.10 shutdown",
+            ],
+        )
         # Add static route for the hijacked prefix
         self.vtysh_global_config(
             container="r3",
@@ -344,6 +410,22 @@ class ScenariosExecutor:
         print("[*] Setting scenario: blackhole (RTBH-style for 10.10.1.0/24)")
         # Cleanup previous scenario configs by resetting to normal
         self.scenario_normal()
+        # Bring BGP session back up on R2's side
+        self.vtysh_bgp_config(
+            container="r2",
+            bgp_asn=65002,
+            commands=[
+                "no neighbor 10.0.0.11 shutdown",
+            ],
+        )
+        # Bring BGP session back up on R3's side
+        self.vtysh_bgp_config(
+            container="r3",
+            bgp_asn=65003,
+            commands=[
+                "no neighbor 10.0.0.10 shutdown",
+            ],
+        )
         # Ensure the static blackhole route exists on the attacker.
         self.vtysh_global_config(
             container="r3",

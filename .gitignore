@@ -8,3 +8,6 @@ env/
 
 bin/*
 !bin/README.md
+
+config/*
+!bin/README.md
