@@ -1,22 +1,2 @@
-# Minimal daemons file for FRR lab
-
-zebra=yes
 bgpd=yes
-
-ospfd=no
-ospf6d=no
-ripd=no
-ripngd=no
-isisd=no
-pimd=no
-ldpd=no
-nhrpd=no
-eigrpd=no
-babeld=no
-sharpd=no
-pbrd=no
-fabricd=no
-vrrpd=no
-
-# Keep vtysh and integrated config active
-vtysh_enable=yes
+zebra=yes

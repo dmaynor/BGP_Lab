@@ -5,3 +5,9 @@ venv/
 .venv/
 env/
 .env/
+
+bin/*
+!bin/README.md
+
+config/*
+!bin/README.md

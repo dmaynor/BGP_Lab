@@ -25,13 +25,15 @@
 from fastapi import FastAPI, HTTPException
 
 from .config import LabSettings
-from .orchestrator_client import OrchestratorClient
 from .scenarios import ScenarioRegistry
+from .scenarios_executor import ScenariosExecutor
+from .state_manager import StateManager
 
 app = FastAPI(title="BGP Attack Controller", version="0.1.0")
 settings = LabSettings()
 registry = ScenarioRegistry(settings.scenarios)
-orchestrator = OrchestratorClient()
+executor = ScenariosExecutor()
+state_manager = StateManager()
 
 
 @app.get("/healthz")
@@ -45,7 +47,8 @@ def list_scenarios() -> dict:
         "scenarios": [
             {"name": scenario.name, "description": scenario.description}
             for scenario in registry.list()
-        ]
+        ],
+        "active_scenario": state_manager.get_active_scenario(),
     }
 
 
@@ -54,13 +57,16 @@ def trigger_scenario(scenario_name: str) -> dict:
     scenario = registry.get(scenario_name)
     if not scenario:
         raise HTTPException(status_code=404, detail="scenario not found")
-    completed = orchestrator.run_scenario(scenario.orchestrator_entrypoint)
-    if completed.returncode != 0:
+
+    try:
+        executor.run_scenario(scenario.orchestrator_entrypoint)
+    except (ValueError, RuntimeError) as e:
         raise HTTPException(
             status_code=500,
-            detail={
-                "stdout": completed.stdout,
-                "stderr": completed.stderr,
-            },
+            detail=str(e),
         )
-    return {"stdout": completed.stdout}
+
+    # Update active scenario on success
+    state_manager.set_active_scenario(scenario_name)
+
+    return {"detail": f"Scenario '{scenario_name}' activated"}
